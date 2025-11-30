@@ -48,7 +48,8 @@ export class Game {
          * @type {Record<string, () => void>}
          */
         this.specialKeys = {
-            KeyG: () => { this.snake.grow(); console.log(11) }, // デバッグ用
+            KeyG: () => { this.snake.grow(); }, // デバッグ用
+            Space: () => { this.snake.stepOver(); },
         };
     }
 

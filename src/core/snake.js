@@ -51,7 +51,7 @@ export class Snake {
          * デフォルトは右
          * @type {Vector}
          */
-        this.direction = DIR.RIGHT;
+        this.direction = structuredClone(DIR.RIGHT);
 
         /**
          * directionを決定するための一時的なオブジェクト
@@ -63,6 +63,12 @@ export class Snake {
         this.maxQueueLen = 2;
 
         this.growFlag = false;
+
+        this.doStepOver = false;
+    }
+    
+    isMapFull() {
+        return this.body.length === this.mapArea;
     }
 
     /**
@@ -98,10 +104,6 @@ export class Snake {
         this.nextDirectionQueue.shift(); // キューの先頭要素を削除
     }
 
-    isMapFull() {
-        return this.body.length === this.mapArea;
-    }
-
     /** 
      * 新しい頭を配列の先頭に追加
      * @param {Coordinate} newHead 
@@ -113,8 +115,8 @@ export class Snake {
     grow() { this.growFlag = true; }
     shrink() { this.body.pop(); }
 
-    onEnd() {
-        // this.food = [];
+    stepOver() {
+        this.doStepOver = true;
     }
 
     /**
@@ -123,6 +125,11 @@ export class Snake {
     update() {
         if (this.nextDirectionQueue.length) {
             this.setDirection();
+        }
+
+        if (this.doStepOver) {
+            this.direction.vx *= 2;
+            this.direction.vy *= 2;
         }
 
         // ヘビの頭を取得。
@@ -135,19 +142,23 @@ export class Snake {
             y: head.y + this.direction.vy,
         };
 
+        if (this.doStepOver) {
+            this.doStepOver = false;
+            this.direction.vx /= 2;
+            this.direction.vy /= 2;
+        }
+
         // 衝突判定は移動してから（newHeadが生まれてから）
         const hitWall =
             newHead.x < 0 || newHead.x >= this.mapSize.width ||
             newHead.y < 0 || newHead.y >= this.mapSize.height;
         if (hitWall) {
-            this.onEnd();
             return END_REASONS.CRASH;
         }
 
         const bodyExceptTail = this.body.slice(0, -1);
         const hitSelf = bodyExceptTail.some(seg => isSameCoord(seg, newHead));
         if (hitSelf) {
-            this.onEnd();
             return END_REASONS.CRASH;
         }
 
@@ -170,7 +181,6 @@ export class Snake {
 
         // bodyセグメントの数がマップのタイルと等しいとき、ゲームを終了する
         if (this.isMapFull()) {
-            this.onEnd();
             return END_REASONS.COMPLETE;
         }
 
