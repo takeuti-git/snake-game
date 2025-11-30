@@ -37,7 +37,7 @@ function handleKeyDown(e, game) {
             handlePlayingKey(e, game);
             break;
     }
-    if (e.code === "KeyR") goHome(e);
+    if (e.code === "KeyR") resetGame(game);
 }
 
 /**
@@ -74,15 +74,15 @@ function handleKeyUp(e) {
 /**
  * @param {Game} game 
  */
-async function startGame(game) {
+function startGame(game) {
     setStatus(GAME_STATUS.PLAYING);
     game.onStart();
 }
 
 /**
- * @param {KeyboardEvent} e 
+ * @param {Game} game 
  */
-function goHome(e) {
-    e.preventDefault();
-    window.location.href = "./";
+function resetGame(game) {
+    setStatus(GAME_STATUS.READY);
+    game.onReset();
 }

@@ -39,11 +39,10 @@ export class Game {
      */
     constructor(width, height = width) {
         this.mapSize = { width: Math.max(2, Math.trunc(width)), height: Math.max(2, Math.trunc(height)) };
-        this.mapArea = this.mapSize.width * this.mapSize.height;
 
         this.snake = new Snake(this.mapSize.width, this.mapSize.height);
 
-        this.isRunning = true;
+        this.isRunning = false;
 
         /** 方向変更以外の操作キー 
          * @type {Record<string, () => void>}
@@ -106,6 +105,8 @@ export class Game {
             onTick: (elapsed) => { updateTimeDisplay(elapsed); },
         });
 
+        this.isRunning = true;
+
         (async () => {
             while (this.isRunning) {
                 this.tick();
@@ -128,5 +129,17 @@ export class Game {
         const color = reason === END_REASONS.COMPLETE ? COLORS.COMPLETE : COLORS.CRASHED;
 
         view.eraseSnake(this.snake.body, color);
+    }
+
+    onReset() {
+        time.stopStopwatch();
+        updateTimeDisplay(0);
+        resetOutBorderColor();
+
+        this.isRunning = false;
+
+        // snakeを初期化したあと、renderを行い内部と外部を同期
+        this.snake = new Snake(this.mapSize.width, this.mapSize.height);
+        this.render();
     }
 }
