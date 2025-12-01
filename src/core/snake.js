@@ -114,20 +114,54 @@ export class Snake {
     shrink() { this.body.pop(); }
     stepOver() { this.willStepOver = true; }
 
-    computeNextHead() {
+    computeRawNextHead() {
         const head = this.body[0];
-        const dir = structuredClone(this.direction);
+        const dir = { ...this.direction };
 
         if (this.willStepOver) {
-            this.willStepOver = false;
             dir.vx *= 2;
             dir.vy *= 2;
         }
-
         return { x: head.x + dir.vx, y: head.y + dir.vy };
     }
 
-    hitwall(/** @type {Coordinate} */ nextHead) {
+    /** @returns {Coordinate} */
+    computeNextHead() {
+        const head = this.body[0];
+        const candidate = this.computeRawNextHead();
+
+        // stepOver が衝突したときだけ通常の移動先に補正
+        if (this.hitWall(candidate) || this.hitSelf(candidate)) {
+            return {
+                x: head.x + this.direction.vx,
+                y: head.y + this.direction.vy
+            };
+        }
+        return candidate;
+    }
+
+    computePath(/** @type {Coordinate} */ nextHead) {
+        if (this.willStepOver) {
+            this.willStepOver = false;
+            const head = this.body[0];
+            const dir = this.direction;
+
+            // 次の頭の位置とstepOverによって無視された位置の配列を返す
+            return [
+                { x: head.x + dir.vx, y: head.y + dir.vy }, // 無視された座標
+                { ...nextHead },
+            ];
+        }
+
+        return [nextHead];
+    }
+
+    checkEatingAlong(/** @type {Coordinate[]} */ path) {
+        // TODO: 真偽値ではなく食べた個数を返したい
+        return path.some(p => this.food.some(f => isSameCoord(f, p)));
+    }
+
+    hitWall(/** @type {Coordinate} */ nextHead) {
         return (
             nextHead.x < 0 || nextHead.x >= this.mapSize.width ||
             nextHead.y < 0 || nextHead.y >= this.mapSize.height
@@ -140,7 +174,7 @@ export class Snake {
     }
 
     willCrash(/** @type {Coordinate} */ nextHead) {
-        return this.hitwall(nextHead) || this.hitSelf(nextHead);
+        return this.hitWall(nextHead) || this.hitSelf(nextHead);
     }
 
     willEat(/** @type {Coordinate} */ nextHead) {
@@ -151,7 +185,7 @@ export class Snake {
      * @returns {EndReason}
      */
     update() {
-        if (this.nextDirectionQueue.length) {
+        if (this.nextDirectionQueue.length > 0) {
             this.setDirection();
         }
 
@@ -162,24 +196,21 @@ export class Snake {
             return END_REASONS.CRASH;
         }
 
+        // stepOverによって無視された座標を含むpath配列
+        const path = this.computePath(nextHead);
+        const eaten = this.checkEatingAlong(path);
+
         // 前進
         this.move(nextHead);
 
-        // 食べ物を判定
-        const eating = this.willEat(nextHead);
-
-        if (this.growFlag || eating) {
-            // do nothing
-            // growメソッドにより成長するのではなく、shrinkをするかしないか
+        if (eaten) {
+            this.spawnFood(path);
+        } else if (this.growFlag) {
+            // growFlagはデバッグ用のため成長のみ
         } else {
             this.shrink();
         }
         this.growFlag = false;
-
-        // 食べ物が食べられた時だけ新しく生成。
-        if (eating) {
-            this.spawnFood(nextHead);
-        }
 
         // bodyセグメントの数がマップのタイルと等しいとき、ゲームを終了する
         if (this.isMapFull()) {
@@ -189,12 +220,12 @@ export class Snake {
         return END_REASONS.CONTINUE; // ゲーム続行
     }
 
-    /** @param {Coordinate} head */
-    spawnFood(head) {
+    /** @param {Coordinate[]} path */
+    spawnFood(path) {
         if (this.isMapFull()) return;
 
-        // headと一致するfoodを削除
-        this.food = this.food.filter(seg => !isSameCoord(seg, head));
+        // pathと一致するfoodを削除
+        this.food = this.food.filter(cell => !path.some(p => isSameCoord(cell, p)));
 
         const { width, height } = this.mapSize;
 
