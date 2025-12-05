@@ -101,12 +101,16 @@ export class Game {
         view.drawFood(this.snake.food, COLORS.FOOD)
     }
 
-    onStart() {
+    /**
+     * @param {KeyboardEvent} e 
+     */
+    onStart(e) {
         time.startStopwatch({
             onTick: (elapsed) => { updateTimeDisplay(elapsed); },
         });
 
         this.isRunning = true;
+        this.handleKey(e);
 
         (async () => {
             while (this.isRunning) {

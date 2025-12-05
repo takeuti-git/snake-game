@@ -8,6 +8,8 @@ import { status, setStatus } from "./status_controller.js";
 import * as gameSpeed from "./speed_controller.js";
 import { COLORS } from "../constants/colors.js";
 
+const START_KEYS = ["ArrowUp", "ArrowDown", "ArrowRight", "ArrowLeft", "KeyW", "KeyA", "KeyS", "KeyD"];
+
 /**
  * UIイベントの登録
  * @param {Game} game 
@@ -30,7 +32,7 @@ function handleKeyDown(e, game) {
 
     switch (status) {
         case GAME_STATUS.READY:
-            if (e.code === "Space") startGame(game);
+            if (START_KEYS.includes(e.code)) startGame(game, e);
             break;
 
         case GAME_STATUS.PLAYING:
@@ -73,10 +75,11 @@ function handleKeyUp(e) {
 
 /**
  * @param {Game} game 
+ * @param {KeyboardEvent} e
  */
-function startGame(game) {
+function startGame(game, e) {
     setStatus(GAME_STATUS.PLAYING);
-    game.onStart();
+    game.onStart(e);
 }
 
 /**
